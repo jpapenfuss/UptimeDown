@@ -5,4 +5,6 @@ import logging
 
 logger = logging.getLogger('monitoring')
 
-Class Disk:
+
+class Disk():
+    pass

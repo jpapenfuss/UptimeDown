@@ -37,16 +37,9 @@ class Cpu:
                 split = splitter.split(stat_line)
                 cpu_name = split[0]
                 split.pop(0)
-                cpustats_values[cpu_name] = {'user': split[0],
-                                             'nice': split[1],
-                                             'system': split[2],
-                                             'idle': split[3],
-                                             'iowait': split[4],
-                                             'irq': split[5],
-                                             'softirq': split[6],
-                                             'steal': split[7],
-                                             'guest': split[8],
-                                             'guest_nice': split[9]}
+                cpustats_values[cpu_name] = {'user': split[0], 'nice': split[1], 'system': split[2], 'idle': split[3],
+                                             'iowait': split[4], 'irq': split[5], 'softirq': split[6], 'steal': split[7], 
+                                             'guest': split[8], 'guest_nice': split[9]}
                 stat_line = str(reader.readline()).strip()
 
             # when we get here, the line after the last cpu* line will be in stat_line. This is interrupts, which
@@ -78,9 +71,6 @@ class Cpu:
             cpustats_values[split[0]] = split[1]
             cpustats_values['_time'] = time.time()
         return(cpustats_values)
-
-    def FindInCpuinfo(searchstring):
-        return(self.cpuinfo_values[searchstring])
 
     def UpdateValues(self):
         self.cpuinfo_values = self.GetCpuinfo()

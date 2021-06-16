@@ -19,14 +19,14 @@ STATVFS_KEYS = ['f_bsize', 'f_frsize', 'f_blocks', 'f_bfree',
 FS_IGNORE = ['autofs', 'bpf', 'cgroup', 'cgroup2', 'configfs', 'debugfs', 'devpts', 'devtmpfs', 'fusectl', 'hugetlbfs', 'mqueue',
              'proc', 'pstore', 'securityfs', 'squashfs', 'sysfs', 'tmpfs', 'tracefs', 'efivarfs', 'rpc_pipefs', 'fuse', 'binfmt_misc']
 
-MOUNT_KEYS = ['device', 'path',
-              'filesystem', 'options', 'dump', 'pass']
+MOUNT_KEYS = ['device', 'path', 'filesystem', 'options', 'dump', 'pass']
 
 # Can populate this with not-actually-filesystem filesystems. e.g. f_blocks=0
 
 
 class Filesystems:
     fs_reject = []
+    filesystems = {}
 
     def GetFilesystems(self):
         mtab_path = '/etc/mtab'
