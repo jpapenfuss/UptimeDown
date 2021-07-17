@@ -1,6 +1,6 @@
 #import commands
 from gather import cpu, memory, filesystems
-import logging
+#import logging
 # see log_setup.py
 from log_setup import log_setup
 
@@ -13,7 +13,10 @@ def main():
     mycpu = cpu.Cpu()
     mymemory = memory.Memory()
     myfs = filesystems.Filesystems()
-
+    print(mycpu.cpustat_values)
+    print(mycpu.cpuinfo_values)
+    print(mymemory.stats)
+    print(myfs.filesystems)
 
 if __name__ == "__main__":
     main()
