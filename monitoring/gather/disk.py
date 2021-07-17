@@ -13,7 +13,6 @@ import logging
 import os
 import pprint
 import time
-import util
 
 pp = pprint.PrettyPrinter(indent=4)
 
@@ -144,5 +143,8 @@ class Disk:
 
 
 if __name__ == "__main__":
-
+    import util # pylint: disable=import-error
     mydisk = Disk()
+    pp.pprint(mydisk.blockdevices)
+else:
+    from . import util
