@@ -67,8 +67,8 @@ class Filesystems:
         mtab_path = "/etc/mtab"
         proc_mounts_path = "/proc/mounts"
 
-        mtab_access = os.access(mtab_path, os.R_OK)
-        proc_mounts_access = os.access(proc_mounts_path, os.R_OK)
+        mtab_access = util.caniread(mtab_path)
+        proc_mounts_access = util.caniread(proc_mounts_path)
 
         if proc_mounts_access is True:
             lg.debug("Can read %s, using that for mounts.", proc_mounts_path)
@@ -190,8 +190,11 @@ class Filesystems:
 
 
 if __name__ == "__main__":
+    import util # pylint: disable=import-error
     myfilesystems = Filesystems()
     import pprint
 
     pp = pprint.PrettyPrinter(indent=4)
     pp.pprint(myfilesystems.filesystems)
+else:
+    from . import util
