@@ -137,6 +137,8 @@ class Disk:
                     line[1] = int(line[1])
                 dev[line[0]] = line[1]
                 line = str(reader.readline()).strip().split("=")
+        if dev["DEVTYPE"] == "partition":
+            dev["PARTITION_OF"] = os.path.basename(os.path.realpath(os.path.join(dev["realpath"], "..")))
         logger.debug(f"get_sys_dev_block returning {dev} for {devnum}")
         return dev
 
@@ -152,6 +154,9 @@ class Disk:
             ret = self.get_sys_dev_block(devnum)
             devs[dev]["path"] = ret["realpath"]
             devs[dev]["type"] = ret["DEVTYPE"]
+            if devs[dev]["type"] == "partition":
+                devs[dev]["partition_number"] = ret["PARTN"]
+                devs[dev]["partition_of"] = ret["PARTITION_OF"]
         return devs
 
     def __init__(self):
