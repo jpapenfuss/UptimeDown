@@ -149,7 +149,7 @@ class Disk:
             os.path.join(self.sys_dev_block_path, devnum, "device/model")
         )
         if util.caniread(path) == False:
-            logger.error(
+            logger.debug(
                 f"Can't read {path} to determine device model. Returning false"
             )
             return False
@@ -162,7 +162,7 @@ class Disk:
             os.path.join(self.sys_dev_block_path, devnum, "device/serial")
         )
         if util.caniread(path) == False:
-            logger.error(
+            logger.debug(
                 f"Can't read {path} to determine device serial. Returning false."
             )
             return False
@@ -175,7 +175,7 @@ class Disk:
             os.path.join(self.sys_dev_block_path, devnum, "device/firmware_rev")
         )
         if util.caniread(path) == False:
-            logger.error(
+            logger.debug(
                 f"Can't read {path} to determine device firmware revision. Returning false."
             )
             return False
@@ -202,7 +202,7 @@ class Disk:
                         queue[filename] = str(reader.readline()).strip()
                     except:
                         queue[filename] = False
-                        logger.warning(f"Can't open {queuefile} for reading.")
+                        logger.debug(f"Can't open {queuefile} for reading.")
                     # Python has string methods for .isdigit(), .isnumeric(), .isdecimal(), but none of these
                     # match on negative numbers OR floats. So we just jackhammer everything and see what sticks.
                     try:
