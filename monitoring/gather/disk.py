@@ -91,6 +91,7 @@ class Disk:
 
     def get_devices(self):
         diskstats = {}
+        skip_zero_io = True
         if util.caniread(self.proc_diskstats_path) is False:
             logger.error(f"Fatal: Can't open {self.proc_diskstats_path} for reading.")
             return None
@@ -99,6 +100,10 @@ class Disk:
             # 8       0 sda 6812071 23231120 460799263 43073497 9561353 55255999 547604986 81837974 0 93365790 124928542
             diskstats_line = str(reader.readline()).strip().split()
             while diskstats_line != []:
+                # if there's no read IO or write IO, skip it. Quote zeros here as we haven't converted to int yet.
+                if diskstats_line[3] == "0" and diskstats_line[7] == "0" and skip_zero_io == True:
+                    diskstats_line = str(reader.readline()).strip().split()
+                    continue
                 if diskstats_line[2].startswith(tuple(IGNORE_PREFIXES)):
                     # If we're ignoring the device type, read the next line and return to start of loop.
                     diskstats_line = str(reader.readline()).strip().split()
