@@ -145,24 +145,29 @@ class Disk:
     def get_disk_queue(self, devnum):
         queue = {}
         path = os.path.realpath(os.path.join(self.sys_dev_block_path, devnum, "queue"))
-        for file in os.listdir(path):
-            queuefile = os.path.join(path, file)
-            with open(queuefile) as reader:
-                # Some files are special, and may not be readable in certain situations.
-                # For example, an md0 device that's defined but doesn't have members has
-                # wbt_lat_usec but it's not readable.
-                try:
-                    queue[file] = str(reader.readline()).strip()
-                except:
-                    queue[file] = False
-                    logger.warning(f"Can't open {queuefile} for reading.")
-                # Python has string methods for .isdigit(), .isnumeric(), .isdecimal(), but none of these
-                # match on negative numbers OR floats. So we just jackhammer everything and see what sticks.
-                try:
-                    queue[file] = int(queue[file])
-                except:
-                    #todo: this is definitely a debug message, at most.
-                    logger.warning(f"Can't coerce {file}: {queue[file]} to int")
+        with os.scandir(path) as files:
+            for file in files:
+                if file.is_file():
+                    filename = file.name
+                else:
+                    continue
+                queuefile = os.path.join(path, filename)
+                with open(queuefile) as reader:
+                    # Some files are special, and may not be readable in certain situations.
+                    # For example, an md0 device that's defined but doesn't have members has
+                    # wbt_lat_usec but it's not readable.
+                    try:
+                        queue[filename] = str(reader.readline()).strip()
+                    except:
+                        queue[filename] = False
+                        logger.warning(f"Can't open {queuefile} for reading.")
+                    # Python has string methods for .isdigit(), .isnumeric(), .isdecimal(), but none of these
+                    # match on negative numbers OR floats. So we just jackhammer everything and see what sticks.
+                    try:
+                        queue[filename] = int(queue[filename])
+                    except:
+                        #todo: this is definitely a debug message, at most.
+                        logger.warning(f"Can't coerce {filename}: {queue[filename]} to int")
         return queue
 
     def get_disks(self):
