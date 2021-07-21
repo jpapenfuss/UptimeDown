@@ -142,6 +142,29 @@ class Disk:
         logger.debug(f"get_sys_dev_block returning {dev} for {devnum}")
         return dev
 
+    def get_disk_queue(self, devnum):
+        queue = {}
+        path = os.path.realpath(os.path.join(self.sys_dev_block_path, devnum, "queue"))
+        for file in os.listdir(path):
+            queuefile = os.path.join(path, file)
+            with open(queuefile) as reader:
+                # Some files are special, and may not be readable in certain situations.
+                # For example, an md0 device that's defined but doesn't have members has
+                # wbt_lat_usec but it's not readable.
+                try:
+                    queue[file] = str(reader.readline()).strip()
+                except:
+                    queue[file] = False
+                    logger.warning(f"Can't open {queuefile} for reading.")
+                # Python has string methods for .isdigit(), .isnumeric(), .isdecimal(), but none of these
+                # match on negative numbers OR floats. So we just jackhammer everything and see what sticks.
+                try:
+                    queue[file] = int(queue[file])
+                except:
+                    #todo: this is definitely a debug message, at most.
+                    logger.warning(f"Can't coerce {file}: {queue[file]} to int")
+        return queue
+
     def get_disks(self):
         # First let's do the easy thing and get the stats that exist in diskstats:
         devs = self.get_devices()
@@ -157,6 +180,8 @@ class Disk:
             if devs[dev]["type"] == "partition":
                 devs[dev]["partition_number"] = ret["PARTN"]
                 devs[dev]["partition_of"] = ret["PARTITION_OF"]
+            if devs[dev]["type"] == "disk":
+                devs[dev]["queuestats"] = self.get_disk_queue(devnum)
         return devs
 
     def __init__(self):
