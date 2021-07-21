@@ -12,7 +12,6 @@ https://www.kernel.org/doc/Documentation/block/statca.txt
 # NFS stats: http://git.linux-nfs.org/?p=steved/nfs-utils.git;a=blob;f=tools/mountstats/mountstats.py;hb=HEAD
 import logging
 import os
-import pprint
 import time
 
 logger = logging.getLogger("monitoring")
@@ -97,15 +96,18 @@ class Disk:
             return None
 
         with open(self.proc_diskstats_path, "r") as reader:
+            logger.debug(f"Disk: Reading {self.proc_diskstats_path}")
             # 8       0 sda 6812071 23231120 460799263 43073497 9561353 55255999 547604986 81837974 0 93365790 124928542
             diskstats_line = str(reader.readline()).strip().split()
             while diskstats_line != []:
                 # if there's no read IO or write IO, skip it. Quote zeros here as we haven't converted to int yet.
-                if diskstats_line[3] == "0" and diskstats_line[7] == "0" and skip_zero_io == True:
+                if diskstats_line[3] == "0" and diskstats_line[7] == "0" and skip_zero_io is True:
+                    logger.debug(f"Disk: Skipping {diskstats_line[2]} with no IO")
                     diskstats_line = str(reader.readline()).strip().split()
                     continue
-                if diskstats_line[2].startswith(tuple(IGNORE_PREFIXES)):
-                    # If we're ignoring the device type, read the next line and return to start of loop.
+                # or skip if device name starts with prefixes in our ignore list
+                elif diskstats_line[2].startswith(tuple(IGNORE_PREFIXES)):
+                    logger.debug(f"Disk: Skipping excluded device {diskstats_line[2]}")
                     diskstats_line = str(reader.readline()).strip().split()
                     continue
                 # If we get the name out of the way, everything else is an int. And we want to index off the name anyway.
@@ -114,18 +116,17 @@ class Disk:
                     "iostats": dict(zip(DISKSTAT_KEYS, list(map(int, diskstats_line))))
                 }
                 diskstats[diskname]["_time"] = time.time()
-
                 diskstats_line = str(reader.readline()).strip().split()
         return diskstats
 
     def get_sys_dev_block(self, devnum):
+        dev = {}
+
         # Get the details of one device by device number.
         path = os.path.realpath(os.path.join(self.sys_dev_block_path, devnum))
-        uevent_path = path + "/uevent"
-        # We'll return dev when it's populated. Create dict here.
-        dev = {}
+        uevent_path = os.path.join(path, "uevent")
         if util.caniread(uevent_path) is False:
-            logger.error(f"Fatal: Can't open {uevent_path} for reading.")
+            logger.error(f"Disk: Fatal: Can't open {uevent_path} for reading.")
             return False
         # Store the resolved path of the block device - This is often a symlink. Always a symlink?
         # /sys/dev/block/259:0 -> /sys/devices/pci0000:00/0000:00:04.0/nvme/nvme0/nvme0n1
@@ -143,79 +144,72 @@ class Disk:
                 dev[line[0]] = line[1]
                 line = str(reader.readline()).strip().split("=")
         if dev["DEVTYPE"] == "partition":
+            # This is dirty, just go up one directory and use that path to determine disk that partition occupies.
             dev["PARTITION_OF"] = os.path.basename(
                 os.path.realpath(os.path.join(dev["realpath"], ".."))
             )
-        logger.debug(f"get_sys_dev_block returning {dev} for {devnum}")
         return dev
 
     def get_disk_model(self, devnum):
-        path = os.path.realpath(
-            os.path.join(self.sys_dev_block_path, devnum, "device/model")
-        )
-        if util.caniread(path) == False:
-            logger.debug(
-                f"Can't read {path} to determine device model. Returning false"
-            )
+        path = os.path.join(self.sys_dev_block_path, devnum, "device/model")
+        path = os.path.realpath(path)
+        if util.caniread(path) is False:
+            logger.debug(f"Disk: Can't read {path} to determine device model.")
             return False
         with open(path) as reader:
             model = str(reader.readline()).strip()
         return model
 
     def get_disk_serial(self, devnum):
-        path = os.path.realpath(
-            os.path.join(self.sys_dev_block_path, devnum, "device/serial")
-        )
-        if util.caniread(path) == False:
-            logger.debug(
-                f"Can't read {path} to determine device serial. Returning false."
-            )
+        path = os.path.join(self.sys_dev_block_path, devnum, "device/serial")
+        path = os.path.realpath(path)
+        if util.caniread(path) is False:
+            logger.debug(f"Disk: Can't read {path} to determine device serial.")
             return False
         with open(path) as reader:
             serial = str(reader.readline()).strip()
         return serial
 
     def get_disk_firmware(self, devnum):
-        path = os.path.realpath(
-            os.path.join(self.sys_dev_block_path, devnum, "device/firmware_rev")
-        )
-        if util.caniread(path) == False:
-            logger.debug(
-                f"Can't read {path} to determine device firmware revision. Returning false."
-            )
+        path = os.path.join(self.sys_dev_block_path, devnum, "device/firmware_rev")
+        path = os.path.realpath(path)
+        if util.caniread(path) is False:
+            logger.debug(f"Disk: Can't read {path} for device firmware.")
             return False
         with open(path) as reader:
             firmware = str(reader.readline()).strip()
         return firmware
 
     def get_disk_queue(self, devnum):
-        # Does this even matter? Oh well.
+        # Does this even matter? None of these are especially compelling details.
         queue = {}
-        path = os.path.realpath(os.path.join(self.sys_dev_block_path, devnum, "queue"))
+        path = os.path.join(self.sys_dev_block_path, devnum, "queue")
+        path = os.path.realpath(path)
         with os.scandir(path) as files:
-            for file in files:
-                if file.is_file():
-                    filename = file.name
+            for f in files:
+                if f.is_file():
+                    filename = f.name
                 else:
                     continue
                 queuefile = os.path.join(path, filename)
                 with open(queuefile) as reader:
-                    # Some files are special, and may not be readable in certain situations.
-                    # For example, an md0 device that's defined but doesn't have members has
-                    # wbt_lat_usec but it's not readable.
+                    # Some files are special, and may not be readable in certain
+                    # situations. For example, an md0 device that's defined but
+                    #  doesn't actually exist has wbt_lat_usec but it's not
+                    # readable.
                     try:
                         queue[filename] = str(reader.readline()).strip()
                     except:
                         queue[filename] = False
                         logger.debug(f"Can't open {queuefile} for reading.")
-                    # Python has string methods for .isdigit(), .isnumeric(), .isdecimal(), but none of these
-                    # match on negative numbers OR floats. So we just jackhammer everything and see what sticks.
+                    # Python has string methods for .isdigit(), .isnumeric(),
+                    # .isdecimal(), but none of these match on negative
+                    # numbers OR floats. So we just jackhammer everything and
+                    # see what sticks. Dumb as hell.
                     try:
                         queue[filename] = int(queue[filename])
                     except:
-                        logger.debug(
-                            f"Can't coerce {filename}: {queue[filename]} to int"
-                        )
+                        pass
         return queue
 
     def get_disks(self):
@@ -247,10 +241,12 @@ class Disk:
 
 
 if __name__ == "__main__":
+    import pprint
     import util  # pylint: disable=import-error
 
-    mydisk = Disk()
     pp = pprint.PrettyPrinter(indent=4)
+
+    mydisk = Disk()
     pp.pprint(mydisk.blockdevices)
 else:
     from . import util

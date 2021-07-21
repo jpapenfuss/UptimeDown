@@ -90,12 +90,16 @@ class Memory:
         slabs["_time"] = time.time()
         return slabs
 
-    def __init__(self):
-        logger.info("Initializing Memory Gathering")
+    def UpdateValues(self):
         # On instantiation, get meminfo. We'll also call GetMemInfo on updates.
+        logger.debug("Memory: Calling GetMeminfo()")
         self.stats["memory"] = self.GetMeminfo()
+        logger.debug("Memory: Calling GetSlabinfo()")
         self.stats["slabs"] = self.GetSlabinfo()
 
+    def __init__(self):
+        logger.info("Memory: Initializing Memory Gathering")
+        self.UpdateValues()
 
 if __name__ == "__main__":
     import util  # pylint: disable=import-error

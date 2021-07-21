@@ -2,12 +2,15 @@ import time
 
 timestart = time.time()
 # import commands
-from gather import cpu, memory, filesystems, disk
+from gather import cpu, memory, filesystems, disk # pylint: disable=import-error
 
 # import logging
 # see log_setup.py
-from log_setup import log_setup
+from log_setup import log_setup # pylint: disable=import-error
+import configparser
 
+config = configparser.ConfigParser()
+config.read("config.ini")
 
 def main():
     # See log_setup.py
@@ -30,8 +33,7 @@ def main():
             "memory": mymemory.stats,
             "filesystems": myfs.filesystems,
             "disks": mydisks.blockdevices,
-        },
-        indent=4,
+        }
     )
 
     print(jsonout)

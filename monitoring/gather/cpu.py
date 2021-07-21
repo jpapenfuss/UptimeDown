@@ -151,11 +151,13 @@ class Cpu:
         return cpustats_values
 
     def UpdateValues(self):
+        logger.debug("CPU: Calling GetCpuinfo()")
         self.cpuinfo_values = self.GetCpuinfo()
+        logger.debug("CPU: Calling GetCpuProcStats()")
         self.cpustat_values = self.GetCpuProcStats()
 
     def __init__(self):
-        # We want to get initial data on first instantiation.
+        logger.info("CPU: Initializing CPU Gathering")
         self.UpdateValues()
 
 
