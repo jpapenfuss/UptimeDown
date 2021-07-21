@@ -1,13 +1,12 @@
 import time
-
-timestart = time.time()
 # import commands
-from gather import cpu, memory, filesystems, disk # pylint: disable=import-error
+from gather import cpu, memory, filesystems, disk  # pylint: disable=import-error
 
 # import logging
 # see log_setup.py
-from log_setup import log_setup # pylint: disable=import-error
+from log_setup import log_setup  # pylint: disable=import-error
 import configparser
+timestart = time.time()
 
 config = configparser.ConfigParser()
 config.read("config.ini")
