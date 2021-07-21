@@ -138,11 +138,53 @@ class Disk:
                 dev[line[0]] = line[1]
                 line = str(reader.readline()).strip().split("=")
         if dev["DEVTYPE"] == "partition":
-            dev["PARTITION_OF"] = os.path.basename(os.path.realpath(os.path.join(dev["realpath"], "..")))
+            dev["PARTITION_OF"] = os.path.basename(
+                os.path.realpath(os.path.join(dev["realpath"], ".."))
+            )
         logger.debug(f"get_sys_dev_block returning {dev} for {devnum}")
         return dev
 
+    def get_disk_model(self, devnum):
+        path = os.path.realpath(
+            os.path.join(self.sys_dev_block_path, devnum, "device/model")
+        )
+        if util.caniread(path) == False:
+            logger.error(
+                f"Can't read {path} to determine device model. Returning false"
+            )
+            return False
+        with open(path) as reader:
+            model = str(reader.readline()).strip()
+        return model
+
+    def get_disk_serial(self, devnum):
+        path = os.path.realpath(
+            os.path.join(self.sys_dev_block_path, devnum, "device/serial")
+        )
+        if util.caniread(path) == False:
+            logger.error(
+                f"Can't read {path} to determine device serial. Returning false."
+            )
+            return False
+        with open(path) as reader:
+            serial = str(reader.readline()).strip()
+        return serial
+
+    def get_disk_firmware(self, devnum):
+        path = os.path.realpath(
+            os.path.join(self.sys_dev_block_path, devnum, "device/firmware_rev")
+        )
+        if util.caniread(path) == False:
+            logger.error(
+                f"Can't read {path} to determine device firmware revision. Returning false."
+            )
+            return False
+        with open(path) as reader:
+            firmware = str(reader.readline()).strip()
+        return firmware
+
     def get_disk_queue(self, devnum):
+        # Does this even matter? Oh well.
         queue = {}
         path = os.path.realpath(os.path.join(self.sys_dev_block_path, devnum, "queue"))
         with os.scandir(path) as files:
@@ -166,8 +208,9 @@ class Disk:
                     try:
                         queue[filename] = int(queue[filename])
                     except:
-                        #todo: this is definitely a debug message, at most.
-                        logger.warning(f"Can't coerce {filename}: {queue[filename]} to int")
+                        logger.debug(
+                            f"Can't coerce {filename}: {queue[filename]} to int"
+                        )
         return queue
 
     def get_disks(self):
@@ -180,13 +223,18 @@ class Disk:
                 + str(devs[dev]["iostats"]["minor"])
             )
             ret = self.get_sys_dev_block(devnum)
+            # the path to the real sysfs directory tree, resolving through symlinks.
             devs[dev]["path"] = ret["realpath"]
+            # type = disk or partition
             devs[dev]["type"] = ret["DEVTYPE"]
             if devs[dev]["type"] == "partition":
                 devs[dev]["partition_number"] = ret["PARTN"]
                 devs[dev]["partition_of"] = ret["PARTITION_OF"]
             if devs[dev]["type"] == "disk":
                 devs[dev]["queuestats"] = self.get_disk_queue(devnum)
+                devs[dev]["model"] = self.get_disk_model(devnum)
+                devs[dev]["serial"] = self.get_disk_serial(devnum)
+                devs[dev]["firmware"] = self.get_disk_firmware(devnum)
         return devs
 
     def __init__(self):
