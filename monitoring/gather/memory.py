@@ -40,6 +40,19 @@ class Memory:
         meminfo_values["_time"] = time.time()
         return meminfo_values
 
+    def GetVmstats(self):
+        vmstats = {}
+        if (util.caniread("/proc/vmstat")) is False:
+            logger.warning("Can't read /proc/vmstat, returning false.")
+            return False
+        with open("/proc/vmstat", "r") as reader:
+            vmstatline = reader.readline()
+            while vmstatline != "":
+                stat = vmstatline.split()
+                vmstats[stat[0]] = int(stat[1])
+                vmstatline = reader.readline()
+        return vmstats
+
     def GetSlabinfo(self):
         slabs = {}
         if (util.caniread("/proc/slabinfo")) is False:
@@ -90,7 +103,7 @@ class Memory:
         slabs["_time"] = time.time()
         return slabs
 
-    def UpdateValues(self, gatherslabs = True, gathermeminfo = True):
+    def UpdateValues(self, gatherslabs = True, gathermeminfo = True, gathervmstat = True):
         # On instantiation, get meminfo. We'll also call GetMemInfo on updates.
         if gathermeminfo is True:
             logger.debug("Memory: Calling GetMeminfo()")
@@ -103,6 +116,11 @@ class Memory:
             # Call me paranoid, but we purge any existing metrics blah blah.
             self.stats["slabs"] = {}
             self.stats["slabs"] = self.GetSlabinfo()
+
+        if gathervmstat is True:
+            logger.debug("Memory: Calling GeVmstats()")
+            self.stats["vmstats"] = {}
+            self.stats["vmstats"] = self.GetVmstats()
 
     def __init__(self):
         logger.info("Memory: Initial Memory Gathering")
