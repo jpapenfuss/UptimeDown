@@ -90,15 +90,22 @@ class Memory:
         slabs["_time"] = time.time()
         return slabs
 
-    def UpdateValues(self):
+    def UpdateValues(self, gatherslabs = True, gathermeminfo = True):
         # On instantiation, get meminfo. We'll also call GetMemInfo on updates.
-        logger.debug("Memory: Calling GetMeminfo()")
-        self.stats["memory"] = self.GetMeminfo()
-        logger.debug("Memory: Calling GetSlabinfo()")
-        self.stats["slabs"] = self.GetSlabinfo()
+        if gathermeminfo is True:
+            logger.debug("Memory: Calling GetMeminfo()")
+            # Call me paranoid, but we purge any existing metrics and declare the object.
+            self.stats["memory"] = {}
+            self.stats["memory"] = self.GetMeminfo()
+
+        if gatherslabs is True:
+            logger.debug("Memory: Calling GetSlabinfo()")
+            # Call me paranoid, but we purge any existing metrics blah blah.
+            self.stats["slabs"] = {}
+            self.stats["slabs"] = self.GetSlabinfo()
 
     def __init__(self):
-        logger.info("Memory: Initializing Memory Gathering")
+        logger.info("Memory: Initial Memory Gathering")
         self.UpdateValues()
 
 if __name__ == "__main__":
