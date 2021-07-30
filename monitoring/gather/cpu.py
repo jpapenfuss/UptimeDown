@@ -41,9 +41,10 @@ class Cpu:
         cpuinfo_values = {}
         # Path definitions
         cpuinfo_path = "/proc/cpuinfo"
-        if util.caniread(cpuinfo_path) == False:
+        if util.caniread(cpuinfo_path) is False:
             logger.warning(f"Can't read {cpuinfo_path}, bailing out.")
-            # While we can't read CPU info for some reason, we don't sys.exit as other modules may be alive.
+            # While we can't read CPU info for some reason, we don't sys.exit
+            # as other modules may be alive.
             return False
         # Read all of cpuinfo into a list for data collection
         with open(cpuinfo_path, "r") as reader:
@@ -78,13 +79,14 @@ class Cpu:
     def GetCpuSoftIrqs(self, cpustats_values):
         logger.debug("Entering GetCpuSoftIrqs")
         softirq_path = "/proc/softirqs"
-        if util.caniread(softirq_path) == False:
+        if util.caniread(softirq_path) is False:
             logger.error(f"Fatal: Can't open {softirq_path} for reading.")
             return False
         with open(softirq_path, "r") as reader:
             # Get first line
             softirq_line = str(reader.readline()).strip()
-            # This is a column-based file for CPUs, so we burn the first line by just reading again. Probably a better way but this works.
+            # This is a column-based file for CPUs, so we burn the first line
+            # by just reading again. Probably a better way but this works.
             softirq_line = str(reader.readline()).strip()
 
             while softirq_line != "":
@@ -107,7 +109,7 @@ class Cpu:
         cpustats_values = {}
         cpustats_labels = ["user", "nice", "system", "idle", "iowait", "irq", "softirq", "steal", "guest", "guest_nice"]
         stat_path = "/proc/stat"
-        if util.caniread(stat_path) == False:
+        if util.caniread(stat_path) is False:
             logger.error(f"Fatal: Can't open {stat_path} for reading.")
             return False
         with open(stat_path, "r") as reader:
@@ -134,9 +136,8 @@ class Cpu:
                 else:
                     # We split the line, as we always do
                     split = stat_line.split()
-                    key = split[0]
-                    # The 0 index is now assigned to our key, so get it out of the way.
-                    split.pop(0)
+                    key = split.pop(0)
+
                     if key in self.INTEGER_STATS:
                         cpustats_values[key] = int(split[0])
                     elif key in self.FLOAT_STATS:
