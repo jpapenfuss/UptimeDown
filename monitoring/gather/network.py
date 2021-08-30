@@ -1,3 +1,4 @@
+#I wanted to manually get network interface details, but the work to get it is... Unappealing, via ctypes and interfacing with glibc. I'll do it later. This is a minor dependency.
 import netifaces
 import logging
 
@@ -20,6 +21,8 @@ class Interfaces:
             # ifaddresses is keyed on net family, print(netifaces.address_families). Most important.common:
             # 2: 'AF_INET', 10: 'AF_INET6', 17: 'AF_PACKET',
             ifaces_with_ips[iface] = netifaces.ifaddresses(iface)
+
+            if util.caniread("/sys/class/net/", )
 
         """ returns:
         {'interfaces':{
@@ -62,11 +65,11 @@ class Interfaces:
 if __name__ == "__main__":
     import pprint
 
-    #    import util  # pylint: disable=import-error
+    import util  # pylint: disable=import-error
 
     pp = pprint.PrettyPrinter(indent=4)
     myInterfaces = Interfaces()
     pp.pprint(myInterfaces.network)
 else:
-    #    from . import util
+    from . import util
     pass
