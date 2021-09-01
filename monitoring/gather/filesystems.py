@@ -52,6 +52,8 @@ FS_IGNORE = [
     "overlay",
 ]
 MOUNT_KEYS = ["device", "path", "filesystem", "options", "dump", "pass"]
+MTAB_PATH = "/etc/mtab"
+PROC_MOUNTS_PATH = "/proc/mounts"
 
 
 class Filesystems:
@@ -64,22 +66,17 @@ class Filesystems:
     # if /proc/mounts is unreadable tries /etc/mtab, but this
     # will probably spell trouble later.
     def get_filesystems(self):
-        mtab_path = "/etc/mtab"
-        proc_mounts_path = "/proc/mounts"
 
-        mtab_access = util.caniread(mtab_path)
-        proc_mounts_access = util.caniread(proc_mounts_path)
-
-        if proc_mounts_access is True:
-            lg.debug("Can read %s, using that for mounts.", proc_mounts_path)
-            filesystems = self.get_filesystems_from_proc(proc_mounts_path)
-        elif mtab_access is True:
+        if util.caniread(PROC_MOUNTS_PATH) is True:
+            lg.debug("Can read %s, using that for mounts.", PROC_MOUNTS_PATH)
+            filesystems = self.get_filesystems_from_proc(PROC_MOUNTS_PATH)
+        elif util.caniread(MTAB_PATH) is True:
             # For now we just call the same method, since it's the same format
             # for mtab and proc/mounts
-            lg.warning("Failed through from proc, but can read %s, using that for mounts.", mtab_path)
-            filesystems = self.get_filesystems_from_proc(mtab_path)
+            lg.warning("Failed through from proc, but can read %s, using that for mounts.", MTAB_PATH)
+            filesystems = self.get_filesystems_from_proc(MTAB_PATH)
         else:
-            lg.error("Fatal: Can't open either %s or %s for reading.", proc_mounts_path, proc_mounts_path)
+            lg.error("Fatal: Can't open either %s or %s for reading.", PROC_MOUNTS_PATH, PROC_MOUNTS_PATH)
             exit(1)
 
         return filesystems
@@ -139,9 +136,9 @@ class Filesystems:
 
         return fs_stats
 
-    def get_filesystems_from_proc(self, proc_mounts_path):
+    def get_filesystems_from_proc(self, mounts_path):
         fs = {}
-        with open(proc_mounts_path, "r") as reader:
+        with open(mounts_path, "r") as reader:
             # get first line, before the loop.
             mount_line = str(reader.readline()).strip()
             while mount_line != "":

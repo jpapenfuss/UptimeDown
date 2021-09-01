@@ -2,6 +2,10 @@ import time
 import logging
 
 logger = logging.getLogger("monitoring")
+# Constants
+MEMINFO_PATH = "/proc/meminfo"
+VMSTAT_PATH = "/proc/vmstat"
+SLABINFO_PATH = "/proc/slabinfo"
 
 
 class Memory:
@@ -9,14 +13,13 @@ class Memory:
 
     def GetMeminfo(self):
         # Path definitions
-        meminfo_path = "/proc/meminfo"
         meminfo_values = {}
 
-        if util.caniread(meminfo_path) is False:
-            logger.error(f"Fatal: Can't open {meminfo_path} for reading.")
+        if util.caniread(MEMINFO_PATH) is False:
+            logger.error(f"Fatal: Can't open {MEMINFO_PATH} for reading.")
             exit(1)
         # Read all of cpuinfo into a list for data collection
-        with open(meminfo_path, "r") as reader:
+        with open(MEMINFO_PATH, "r") as reader:
             # read in first line
             meminfo_line = str(reader.readline()).strip()
             # Iterate until EOF
@@ -42,10 +45,10 @@ class Memory:
 
     def GetVmstats(self):
         vmstats = {}
-        if (util.caniread("/proc/vmstat")) is False:
-            logger.warning("Can't read /proc/vmstat, returning false.")
+        if (util.caniread(VMSTAT_PATH)) is False:
+            logger.warning("Can't read VMSTAT_PATH, returning false.")
             return False
-        with open("/proc/vmstat", "r") as reader:
+        with open(VMSTAT_PATH, "r") as reader:
             vmstatline = reader.readline()
             while vmstatline != "":
                 stat = vmstatline.split()
@@ -55,12 +58,12 @@ class Memory:
 
     def GetSlabinfo(self):
         slabs = {}
-        if (util.caniread("/proc/slabinfo")) is False:
+        if (util.caniread(SLABINFO_PATH)) is False:
             logger.warning(
                 "Can't read /proc/slabinfo - I may not be root. Will not collect slab stats"
             )
             return False
-        with open("/proc/slabinfo", "r") as reader:
+        with open(SLABINFO_PATH, "r") as reader:
             slabline = reader.readline()
             while slabline != "":
                 if slabline.startswith("slabinfo") or slabline.startswith("# name"):
@@ -103,7 +106,7 @@ class Memory:
         slabs["_time"] = time.time()
         return slabs
 
-    def UpdateValues(self, gatherslabs = True, gathermeminfo = True, gathervmstat = True):
+    def UpdateValues(self, gatherslabs=True, gathermeminfo=True, gathervmstat=True):
         # On instantiation, get meminfo. We'll also call GetMemInfo on updates.
         if gathermeminfo is True:
             logger.debug("Memory: Calling GetMeminfo()")
@@ -125,6 +128,7 @@ class Memory:
     def __init__(self):
         logger.info("Memory: Initial Memory Gathering")
         self.UpdateValues()
+
 
 if __name__ == "__main__":
     import util  # pylint: disable=import-error

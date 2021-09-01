@@ -2,6 +2,10 @@ import time
 import logging
 
 logger = logging.getLogger("monitoring")
+# Constants
+CPUINFO_PATH = "/proc/cpuinfo"
+SOFTIRQ_PATH = "/proc/softirqs"
+STAT_PATH = "/proc/stat"
 
 
 class Cpu:
@@ -40,14 +44,13 @@ class Cpu:
     def GetCpuinfo(self):
         cpuinfo_values = {}
         # Path definitions
-        cpuinfo_path = "/proc/cpuinfo"
-        if util.caniread(cpuinfo_path) is False:
-            logger.warning(f"Can't read {cpuinfo_path}, bailing out.")
+        if util.caniread(CPUINFO_PATH) is False:
+            logger.warning(f"Can't read {CPUINFO_PATH}, bailing out.")
             # While we can't read CPU info for some reason, we don't sys.exit
             # as other modules may be alive.
             return False
         # Read all of cpuinfo into a list for data collection
-        with open(cpuinfo_path, "r") as reader:
+        with open(CPUINFO_PATH, "r") as reader:
             # read first line
             cpuinfo_line = str(reader.readline()).strip()
             # loop until a blank line. This will get us cpu0's config, which is
@@ -56,17 +59,21 @@ class Cpu:
                 # Split on colon:
                 # model name      : AMD EPYC 7571
                 split = cpuinfo_line.split(":")
-                # trim leading and trailing whitespace for key and value then reassign since we reference it multiple times. "model name"
+                # trim leading and trailing whitespace for key and value then
+                # reassign since we reference it multiple times. "model name"
                 split[0] = split[0].strip()
                 split[1] = split[1].strip()
-                # cpuinfo_values is a dict, keys are the strings at the start of each /proc/cpuinfo line, value is anything after the colon
-                # after some cooking to coerce from strings to proper types and some normalization.
+                # cpuinfo_values is a dict, keys are the strings at the start
+                # of each /proc/cpuinfo line, value is anything after the colon
+                # after some cooking to coerce from strings to proper types and
+                # some normalization.
                 if split[0] in self.INTEGER_STATS:
                     cpuinfo_values[split[0]] = int(split[1])
                 elif split[0] in self.FLOAT_STATS:
                     cpuinfo_values[split[0]] = float(split[1])
                 elif split[0] in self.LIST_STATS:
-                    # Some entries in cpuinfo have a number of values, such as "flags"
+                    # Some entries in cpuinfo have a number of values, such as
+                    # "flags"
                     cpuinfo_values[split[0]] = split[1].split()
                 else:
                     cpuinfo_values[split[0]] = split[1]
@@ -78,11 +85,10 @@ class Cpu:
 
     def GetCpuSoftIrqs(self, cpustats_values):
         logger.debug("Entering GetCpuSoftIrqs")
-        softirq_path = "/proc/softirqs"
-        if util.caniread(softirq_path) is False:
-            logger.error(f"Fatal: Can't open {softirq_path} for reading.")
+        if util.caniread(SOFTIRQ_PATH) is False:
+            logger.error(f"Fatal: Can't open {SOFTIRQ_PATH} for reading.")
             return False
-        with open(softirq_path, "r") as reader:
+        with open(SOFTIRQ_PATH, "r") as reader:
             # Get first line
             softirq_line = str(reader.readline()).strip()
             # This is a column-based file for CPUs, so we burn the first line
@@ -95,24 +101,35 @@ class Cpu:
                 # First value is the IRQ "name".
                 irqname = irq.pop(0)
                 for cpu in cpustats_values.keys():
-                    # We have a "cpu" in cpustats_values, but no such value in softirqs.
+                    # We have a "cpu" in cpustats_values, but no such value in
+                    # softirqs.
                     if cpu.startswith("cpu") and cpu != "cpu":
-                        # This should move each value to the correct cpuN, coercing it to int before assignment.
+                        # This should move each value to the correct cpuN,
+                        # coercing it to int before assignment.
                         irqval = irq.pop(0)
                         cpustats_values[cpu]["softirqs"][irqname] = int(irqval)
                 # Get next line, then return to start of loop
                 softirq_line = str(reader.readline()).strip()
         return cpustats_values
 
-
     def GetCpuProcStats(self):
         cpustats_values = {}
-        cpustats_labels = ["user", "nice", "system", "idle", "iowait", "irq", "softirq", "steal", "guest", "guest_nice"]
-        stat_path = "/proc/stat"
-        if util.caniread(stat_path) is False:
-            logger.error(f"Fatal: Can't open {stat_path} for reading.")
+        cpustats_labels = [
+            "user",
+            "nice",
+            "system",
+            "idle",
+            "iowait",
+            "irq",
+            "softirq",
+            "steal",
+            "guest",
+            "guest_nice",
+        ]
+        if util.caniread(STAT_PATH) is False:
+            logger.error(f"Fatal: Can't open {STAT_PATH} for reading.")
             return False
-        with open(stat_path, "r") as reader:
+        with open(STAT_PATH, "r") as reader:
             stat_line = str(reader.readline()).strip()
             while stat_line != "":
                 if stat_line.startswith("cpu"):
@@ -128,9 +145,11 @@ class Cpu:
                     )
                     cpustats_values[cpu_name]["softirqs"] = {}
                 elif stat_line.startswith("intr"):
-                    # Use this opportunity to get the softirqs for each core since we should be done with per-cpu stats here.
+                    # Use this opportunity to get the softirqs for each core
+                    # since we should be done with per-cpu stats here.
                     cpustats_values = self.GetCpuSoftIrqs(cpustats_values)
-                    # We're not going to deal with the mess of shit that is the interrupts here.
+                    # We're not going to deal with the mess of shit that is
+                    # the interrupts here.
                     pass
 
                 else:
